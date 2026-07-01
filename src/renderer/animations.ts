@@ -1,52 +1,20 @@
 import { Sprite } from "pixi.js"
 
-let animTime = 0
-
-export function tickAnimations(sprite: Sprite, behavior: string, dt: number): void {
-  animTime += dt
-
+export function applyAnim(sprite: Sprite, behavior: string, t: number): void {
   switch (behavior) {
+    case "idle":
+    case "observing":
+      sprite.scale.set(3 + Math.sin(t * 0.003) * 0.05)
+      break
     case "sleeping":
-      breathe(sprite, animTime, 0.5)
+      sprite.scale.set(3 + Math.sin(t * 0.001) * 0.08)
       break
     case "happy":
-      bounce(sprite, animTime)
+      sprite.scale.set(3 + Math.sin(t * 0.006) * 0.04)
+      sprite.y = 75 + Math.sin(t * 0.008) * 4
       break
     case "curious":
-      tilt(sprite, animTime)
-      break
-    case "observing":
-      sway(sprite, animTime)
-      break
-    default:
-      breathe(sprite, animTime, 1)
-      blink(sprite, animTime, 3)
+      sprite.rotation = Math.sin(t * 0.005) * 0.12
       break
   }
-}
-
-function breathe(sprite: Sprite, t: number, speed = 1): void {
-  const s = 1 + Math.sin(t * Math.PI * speed) * 0.03
-  sprite.scale.set(s)
-}
-
-function blink(sprite: Sprite, t: number, interval: number): void {
-  const cycle = t % interval
-  if (cycle < 0.1) {
-    sprite.scale.y = 1 - (cycle / 0.1) * 0.3
-  } else if (sprite.scale.y < 1) {
-    sprite.scale.y = 1
-  }
-}
-
-function bounce(sprite: Sprite, t: number): void {
-  sprite.y += Math.sin(t * Math.PI * 4) * 3
-}
-
-function sway(sprite: Sprite, t: number): void {
-  sprite.rotation = Math.sin(t * Math.PI * 1.5) * 0.08
-}
-
-function tilt(sprite: Sprite, t: number): void {
-  sprite.rotation = Math.sin(t * Math.PI * 2.5) * 0.12
 }

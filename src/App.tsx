@@ -2,12 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { HoshiCanvas } from "./components/HoshiCanvas"
 import { HUD } from "./components/HUD"
 import { PixiApp } from "./renderer"
-import { tickAnimations } from "./renderer/animations"
 import { EmotionEngine, BehaviorEngine, IdentityEngine, MemoryEngine } from "./engines"
 import { SystemObserver } from "./observers"
 import { useHoshiStore } from "./store"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import "./App.css"
+
+const cap = (v: number) => Math.max(0, Math.min(100, v))
 
 export function App() {
   const pixiRef = useRef<PixiApp | null>(null)
@@ -18,21 +19,20 @@ export function App() {
     memory: new MemoryEngine(),
     observer: new SystemObserver(),
   })
+  const userEventsRef = useRef<Array<{ type: "USER_INTERACTION"; kind: "mouse" | "keyboard" }>>([])
 
   const setEmotions = useHoshiStore((s) => s.setEmotions)
   const setBehavior = useHoshiStore((s) => s.setBehavior)
   const setAnimation = useHoshiStore((s) => s.setAnimation)
   const setContext = useHoshiStore((s) => s.setContext)
+  const [showMenu, setShowMenu] = useState(false)
 
   const handleClick = useCallback(() => {
     const { emotion, observer } = enginesRef.current
     observer.reportActivity()
-    emotion.setState({ happiness: Math.min(100, emotion.getState().happiness + 10) })
-    emotion.setState({ affection: Math.min(100, emotion.getState().affection + 5) })
+    emotion.setState({ happiness: cap(emotion.getState().happiness + 15), affection: cap(emotion.getState().affection + 8) })
     setEmotions(emotion.getState())
   }, [setEmotions])
-
-  const [showMenu, setShowMenu] = useState(false)
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 0) {
@@ -55,7 +55,7 @@ export function App() {
   }, [])
 
   const handleClose = useCallback(() => {
-    window.close()
+    getCurrentWindow().close()
   }, [])
 
   const handlePixiReady = useCallback(async (pixi: PixiApp) => {
@@ -63,51 +63,75 @@ export function App() {
     try {
       await pixi.loadSprite("/sprites/hoshi.png")
       await pixi.loadDirections("/sprites/hoshi")
+      await pixi.loadIdleFrames()
     } catch {
       console.warn("Sprite not found yet — will retry")
+    }
+    pixi.startAnimation()
+  }, [])
+
+  useEffect(() => {
+    let lastInput = 0
+    const onInput = () => {
+      const now = Date.now()
+      if (now - lastInput > 1000) {
+        lastInput = now
+        enginesRef.current.observer.reportActivity()
+        userEventsRef.current.push({ type: "USER_INTERACTION", kind: "mouse" })
+      }
+    }
+    document.addEventListener("mousemove", onInput, { passive: true })
+    document.addEventListener("keydown", onInput, { passive: true })
+    return () => {
+      document.removeEventListener("mousemove", onInput)
+      document.removeEventListener("keydown", onInput)
     }
   }, [])
 
   useEffect(() => {
-    let lastTick = performance.now()
-
     const interval = setInterval(() => {
-      const now = performance.now()
-      const dt = (now - lastTick) / 1000
-      lastTick = now
-
       const { emotion, behavior, identity, memory, observer } = enginesRef.current
 
       const events = observer.tick()
       const context = observer.getContext()
       setContext(context)
 
-      emotion.tick(events)
+      const userEvents = userEventsRef.current.splice(0)
+      const allEvents = [...events, ...userEvents]
 
-      for (const ev of events) {
+      emotion.tick(allEvents)
+
+      for (const ev of allEvents) {
         if (ev.type === "IDLE_START") {
-          emotion.setState({ boredom: Math.min(100, emotion.getState().boredom + 10), loneliness: Math.min(100, emotion.getState().loneliness + 5) })
+          emotion.setState({ boredom: cap(emotion.getState().boredom + 10), loneliness: cap(emotion.getState().loneliness + 5) })
         } else if (ev.type === "IDLE_END") {
-          emotion.setState({ boredom: Math.max(0, emotion.getState().boredom - 10), loneliness: Math.max(0, emotion.getState().loneliness - 5) })
+          emotion.setState({ boredom: cap(emotion.getState().boredom - 10), loneliness: cap(emotion.getState().loneliness - 5) })
+        } else if (ev.type === "USER_INTERACTION") {
+          emotion.setState({ curiosity: cap(emotion.getState().curiosity + 2), energy: cap(emotion.getState().energy + 1), loneliness: cap(emotion.getState().loneliness - 1.5) })
         }
       }
 
-      if (context.isIdle) {
-        emotion.setState({ boredom: Math.min(100, emotion.getState().boredom + 0.5), loneliness: Math.min(100, emotion.getState().loneliness + 0.3) })
+      if (context.isIdle && context.idleDuration > 120_000) {
+        const rate = context.idleDuration > 300_000 ? 2 : 1
+        emotion.setState({ boredom: cap(emotion.getState().boredom + rate), loneliness: cap(emotion.getState().loneliness + rate * 0.5) })
       }
 
-      setEmotions(emotion.getState())
-
-      identity.tick(events)
+      if (context.timeOfDay === "night") {
+        emotion.setState({ energy: cap(emotion.getState().energy - 1) })
+      } else if (context.timeOfDay === "morning") {
+        emotion.setState({ happiness: cap(emotion.getState().happiness + 0.3) })
+      }
 
       let emotionsState = emotion.getState()
+      const state = behavior.evaluate(emotionsState, context)
 
-      if (emotionsState.energy < 30 || context.timeOfDay === "night") {
-        emotion.setState({ energy: Math.min(100, emotionsState.energy + 0.5) })
+      if (state === "sleeping") {
+        emotion.setState({ energy: cap(emotion.getState().energy + 2) })
         emotionsState = emotion.getState()
       }
 
-      const state = behavior.evaluate(emotionsState, context)
+      setEmotions(emotionsState)
+      identity.tick(allEvents)
       setBehavior(state)
 
       const animKey =
@@ -119,12 +143,11 @@ export function App() {
       setAnimation(animKey)
 
       const pixi = pixiRef.current
-      if (pixi?.sprite) {
-        tickAnimations(pixi.sprite, state, dt)
-      }
+      if (pixi) pixi.setBehavior(state)
 
-      if (events.some((e) => e.type === "PET" || e.type === "TICKLE" || e.type === "COMPILE_SUCCESS")) {
-        memory.store("event", JSON.stringify(events.find(e => e.type !== "TICK")), 50)
+      if (events.some((e) => e.type !== "TICK" && e.type !== "USER_INTERACTION")) {
+        const important = allEvents.find((e) => e.type !== "TICK" && e.type !== "USER_INTERACTION")
+        if (important) memory.store("event", JSON.stringify(important), 50)
       }
     }, 1000)
 
