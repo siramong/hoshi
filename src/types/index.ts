@@ -92,7 +92,7 @@ export interface SystemContext {
 
 // ─── Animation types ──────────────────────────────────────────
 
-export type AnimationKey = "idle" | "happy" | "sleep" | "surprise" | "observe" | "bounce"
+export type AnimationKey = "idle" | "happy" | "sleep" | "surprise" | "observe" | "bounce" | "curious"
 
 export interface AnimationFrame {
   spriteIndex: number

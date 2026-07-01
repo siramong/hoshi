@@ -3,13 +3,10 @@ import { PixiApp } from "../renderer"
 
 interface HoshiCanvasProps {
   onReady?: (app: PixiApp) => void
+  onClick?: () => void
 }
 
-/**
- * HoshiCanvas — mounts the PixiJS canvas and exposes the
- * application instance to the parent via onReady callback.
- */
-export function HoshiCanvas({ onReady }: HoshiCanvasProps) {
+export function HoshiCanvas({ onReady, onClick }: HoshiCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const pixiRef = useRef<PixiApp | null>(null)
 
@@ -29,5 +26,11 @@ export function HoshiCanvas({ onReady }: HoshiCanvasProps) {
     }
   }, [onReady])
 
-  return <canvas ref={canvasRef} style={{ display: "block" }} />
+  return (
+    <canvas
+      ref={canvasRef}
+      onClick={onClick}
+      style={{ display: "block", cursor: "pointer" }}
+    />
+  )
 }

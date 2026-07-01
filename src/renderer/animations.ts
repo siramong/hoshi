@@ -1,30 +1,54 @@
 import { Sprite } from "pixi.js"
 
-/**
- * Procedural animation helpers for Hoshi.
- *
- * Each function mutates the sprite's transform over time
- * based on a 0‑1 progress value.
- */
+let animTime = 0
 
-export function breathe(sprite: Sprite, progress: number): void {
-  const scale = 1 + Math.sin(progress * Math.PI * 2) * 0.02
-  sprite.scale.set(scale)
+export function tickAnimations(sprite: Sprite, behavior: string, dt: number): void {
+  animTime += dt
+
+  const baseY = sprite.y
+
+  switch (behavior) {
+    case "sleeping":
+      breathe(sprite, animTime, 0.5)
+      break
+    case "happy":
+      bounce(sprite, animTime)
+      break
+    case "curious":
+      tilt(sprite, animTime)
+      break
+    case "observing":
+      sway(sprite, animTime)
+      break
+    default:
+      breathe(sprite, animTime, 1)
+      blink(sprite, animTime, 3)
+      break
+  }
 }
 
-export function blink(sprite: Sprite, progress: number, interval: number): void {
-  const cycle = progress % interval
+function breathe(sprite: Sprite, t: number, speed = 1): void {
+  const s = 1 + Math.sin(t * Math.PI * speed) * 0.03
+  sprite.scale.set(s)
+}
+
+function blink(sprite: Sprite, t: number, interval: number): void {
+  const cycle = t % interval
   if (cycle < 0.1) {
-    sprite.scale.y = 1 - cycle / 0.1
-  } else {
+    sprite.scale.y = 1 - (cycle / 0.1) * 0.3
+  } else if (sprite.scale.y < 1) {
     sprite.scale.y = 1
   }
 }
 
-export function bounce(sprite: Sprite, progress: number): void {
-  sprite.y = sprite.y + Math.sin(progress * Math.PI * 2) * 3
+function bounce(sprite: Sprite, t: number): void {
+  sprite.y += Math.sin(t * Math.PI * 4) * 3
 }
 
-export function sway(sprite: Sprite, progress: number): void {
-  sprite.rotation = Math.sin(progress * Math.PI * 2) * 0.05
+function sway(sprite: Sprite, t: number): void {
+  sprite.rotation = Math.sin(t * Math.PI * 1.5) * 0.08
+}
+
+function tilt(sprite: Sprite, t: number): void {
+  sprite.rotation = Math.sin(t * Math.PI * 2.5) * 0.12
 }

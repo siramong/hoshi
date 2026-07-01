@@ -1,14 +1,8 @@
-import { Application, Assets, Sprite, type Texture } from "pixi.js"
+import { Application, Assets, Sprite } from "pixi.js"
 
-/**
- * PixiApp — manages the PixiJS Application lifecycle.
- *
- * Initialises a transparent canvas that renders Hoshi's
- * sprites and procedural animations on top of the desktop.
- */
 export class PixiApp {
   readonly app: Application
-  private sprite: Sprite | null = null
+  private _sprite: Sprite | null = null
 
   constructor() {
     this.app = new Application()
@@ -21,26 +15,32 @@ export class PixiApp {
       height: 150,
       backgroundAlpha: 0,
       antialias: false,
-      resolution: 1,
+      resolution: window.devicePixelRatio || 1,
+      autoDensity: true,
+      hello: false,
     })
   }
 
-  async loadSprite(textureOrPath: string | Texture): Promise<Sprite> {
-    const texture =
-      typeof textureOrPath === "string" ? await Assets.load(textureOrPath) : textureOrPath
-    this.sprite = new Sprite(texture)
-    this.sprite.anchor.set(0.5)
-    this.sprite.x = this.app.screen.width / 2
-    this.sprite.y = this.app.screen.height / 2
-    this.app.stage.addChild(this.sprite)
-    return this.sprite
+  async loadSprite(path: string): Promise<Sprite> {
+    const texture = await Assets.load(path)
+    this._sprite = new Sprite(texture)
+    this._sprite.anchor.set(0.5)
+    this._sprite.x = this.app.screen.width / 2
+    this._sprite.y = this.app.screen.height / 2
+    this._sprite.scale.set(3)
+    this.app.stage.addChild(this._sprite)
+    return this._sprite
   }
 
-  getSprite(): Sprite | null {
-    return this.sprite
+  get sprite(): Sprite | null {
+    return this._sprite
   }
 
   destroy(): void {
-    this.app.destroy(true)
+    try {
+      this.app.destroy(true)
+    } catch {
+      // PixiJS 8 ResizePlugin may already be cleaned up
+    }
   }
 }

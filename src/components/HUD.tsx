@@ -14,13 +14,14 @@ export function HUD() {
 
   return (
     <div style={styles.panel}>
-      <div style={styles.title}>Hoshi v0.1</div>
-      <div>State: {behavior}</div>
-      <div>Anim: {animation}</div>
-      {EMOTION_KEYS.map((key) => (
-        <div key={key}>
-          {key}: {Math.round(emotions[key])}
-        </div>
+      <span style={styles.title}>Hoshi</span>
+      <span style={styles.sep}>|</span>
+      <span>{behavior}</span>
+      <span style={styles.sep}>|</span>
+      <span>{animation}</span>
+      <span style={styles.sep}>|</span>
+      {EMOTION_KEYS.slice(0, 4).map((key) => (
+        <span key={key} style={styles.em}>{key[0].toUpperCase()}{Math.round(emotions[key])}</span>
       ))}
     </div>
   )
@@ -29,20 +30,32 @@ export function HUD() {
 const styles: Record<string, React.CSSProperties> = {
   panel: {
     position: "fixed",
-    top: 0,
-    right: 0,
-    background: "rgba(0,0,0,0.7)",
+    bottom: 0,
+    left: 0,
+    width: "100%",
+    background: "rgba(0,0,0,0.55)",
     color: "#0f0",
     fontFamily: "monospace",
-    fontSize: 11,
-    padding: "6px 10px",
+    fontSize: 9,
+    padding: "2px 4px",
     zIndex: 9999,
     userSelect: "none",
     pointerEvents: "none",
+    display: "flex",
+    gap: 2,
+    alignItems: "center",
+    lineHeight: 1.3,
   },
   title: {
     fontWeight: "bold",
-    marginBottom: 4,
     color: "#fff",
+  },
+  sep: {
+    color: "#555",
+    margin: "0 1px",
+  },
+  em: {
+    color: "#adf",
+    marginRight: 1,
   },
 }
