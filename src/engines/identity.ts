@@ -48,6 +48,10 @@ export class IdentityEngine {
     this.traits[trait] = Math.max(0, Math.min(100, this.traits[trait] + delta))
   }
 
+  loadTraits(traits: PersonalityTraits): void {
+    this.traits = { ...traits }
+  }
+
   reset(): void {
     this.traits = { ...DEFAULT_TRAITS }
   }

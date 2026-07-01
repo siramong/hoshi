@@ -10,6 +10,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window"
 import "./App.css"
 
 import type { BehaviorState, SystemContext, EmotionState } from "./types"
+import { loadSave, writeSave } from "./persist"
 
 const cap = (v: number) => Math.max(0, Math.min(100, v))
 
@@ -90,6 +91,18 @@ export function App() {
       console.warn("Sprite not found yet — will retry")
     }
     requestAnimationFrame(() => pixi.startAnimation())
+  }, [])
+
+  useEffect(() => {
+    const saved = loadSave()
+    if (saved) {
+      const { emotion, identity, memory } = enginesRef.current
+      emotion.setState(saved.emotions)
+      identity.loadTraits(saved.personality)
+      for (const m of saved.memory) {
+        memory.store(m.type, m.content, m.importance, m.tags ?? [])
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -194,6 +207,34 @@ export function App() {
 
     return () => clearInterval(interval)
   }, [setEmotions, setBehavior, setAnimation, setContext])
+
+  useEffect(() => {
+    const saveInterval = setInterval(() => {
+      const { emotion, identity, memory } = enginesRef.current
+      writeSave({
+        emotions: emotion.getState(),
+        personality: identity.getTraits(),
+        memory: memory.getAll().slice(-200),
+        sessionCount: 0,
+      })
+    }, 30000)
+
+    const onUnload = () => {
+      const { emotion, identity, memory } = enginesRef.current
+      writeSave({
+        emotions: emotion.getState(),
+        personality: identity.getTraits(),
+        memory: memory.getAll().slice(-200),
+        sessionCount: 0,
+      })
+    }
+    window.addEventListener("beforeunload", onUnload)
+
+    return () => {
+      clearInterval(saveInterval)
+      window.removeEventListener("beforeunload", onUnload)
+    }
+  }, [])
 
   return (
     <div className="app-root" onMouseDown={handleMouseDown} onContextMenu={handleContextMenu}>
