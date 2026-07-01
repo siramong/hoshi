@@ -33,6 +33,7 @@ const DEFAULT_CONTEXT: SystemContext = {
   isIdle: false,
   idleDuration: 0,
   activeApp: null,
+  activityLevel: "low",
   recentEvents: [],
 }
 

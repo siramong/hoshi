@@ -117,7 +117,7 @@ export function App() {
       const now = Date.now()
       if (now - lastInput > 1000) {
         lastInput = now
-        enginesRef.current.observer.reportActivity()
+        enginesRef.current.observer.recordInput()
         userEventsRef.current.push({ type: "USER_INTERACTION", kind: "mouse" })
       }
     }

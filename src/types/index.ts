@@ -67,6 +67,9 @@ export interface Memory {
 
 // ─── Event types ──────────────────────────────────────────────
 
+export type TimeSlot = "early_morning" | "morning" | "afternoon" | "evening" | "night"
+export type ActivityLevel = "low" | "medium" | "high"
+
 export type SystemEvent =
   | { type: "APP_OPEN"; app: string }
   | { type: "APP_CLOSE"; app: string }
@@ -78,15 +81,19 @@ export type SystemEvent =
   | { type: "TICKLE" }
   | { type: "COMPILE_SUCCESS" }
   | { type: "COMPILE_ERROR" }
+  | { type: "HIGH_ACTIVITY" }
+  | { type: "LOW_ACTIVITY" }
+  | { type: "TIME_SLOT_CHANGE"; slot: TimeSlot }
   | { type: "TICK" }
 
 // ─── Context types ────────────────────────────────────────────
 
 export interface SystemContext {
-  timeOfDay: "morning" | "afternoon" | "evening" | "night"
+  timeOfDay: TimeSlot
   isIdle: boolean
   idleDuration: number
   activeApp: string | null
+  activityLevel: ActivityLevel
   recentEvents: SystemEvent[]
 }
 
