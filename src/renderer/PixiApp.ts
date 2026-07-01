@@ -29,8 +29,8 @@ export class PixiApp {
       height: 150,
       backgroundAlpha: 0,
       antialias: false,
-      resolution: window.devicePixelRatio || 1,
-      autoDensity: true,
+      resolution: 1,
+      autoDensity: false,
       hello: false,
     })
   }
@@ -111,10 +111,7 @@ export class PixiApp {
           }
         }
 
-        this._sprite.scale.set(1.8)
-        this._sprite.rotation = 0
-        this._sprite.y = 75
-        applyAnim(this._sprite, this.behavior, now)
+        applyAnim(this._sprite, this.behavior, now, 1.8)
       }
 
       this.prevBehavior = this.behavior

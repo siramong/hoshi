@@ -83,7 +83,7 @@ export function App() {
     } catch {
       console.warn("Sprite not found yet — will retry")
     }
-    pixi.startAnimation()
+    requestAnimationFrame(() => pixi.startAnimation())
   }, [])
 
   useEffect(() => {
