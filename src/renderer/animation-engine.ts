@@ -16,7 +16,7 @@ export class AnimationEngine {
     this.groups.set(key, { frames, frameDuration })
   }
 
-  tick(behavior: string, direction: string, dt: number): Sprite | null {
+  tick(behavior: string, direction: string, dt: number, speedMultiplier = 1): Sprite | null {
     const key = `${behavior}:${direction}`
 
     if (key !== this.activeKey) {
@@ -33,10 +33,11 @@ export class AnimationEngine {
     if (!group || group.frames.length === 0) return null
 
     const { frames, frameDuration } = group
+    const adjustedDuration = frameDuration * speedMultiplier
 
     this.frameTimer += dt
-    while (this.frameTimer >= frameDuration) {
-      this.frameTimer -= frameDuration
+    while (this.frameTimer >= adjustedDuration) {
+      this.frameTimer -= adjustedDuration
       this.frameIndex = (this.frameIndex + 1) % frames.length
     }
 

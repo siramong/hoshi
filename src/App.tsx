@@ -172,7 +172,7 @@ export function App() {
         "idle"
       setAnimation(animKey)
 
-      if (pixi) pixi.setBehavior(effectiveState)
+      if (pixi) pixi.setBehavior(effectiveState, emotionsState)
 
       if (msgCooldownRef.current > 0) {
         msgCooldownRef.current--

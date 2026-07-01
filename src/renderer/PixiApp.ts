@@ -1,5 +1,6 @@
 import { Application, Assets, Sprite } from "pixi.js"
 import { AnimationEngine } from "./animation-engine"
+import type { EmotionState } from "../types"
 
 type DirName = "south" | "east" | "north" | "west"
 
@@ -13,6 +14,13 @@ const ANIM_MAP: Record<string, string> = {
   curious: "curious",
 }
 
+function calcSpeedMultiplier(emotions: EmotionState): number {
+  const energy = emotions.energy
+  const happiness = emotions.happiness
+  const avg = (energy + happiness) / 2
+  return 1.3 - (avg / 100) * 0.6
+}
+
 export class PixiApp {
   readonly app: Application
   private _sprite: Sprite | null = null
@@ -20,6 +28,7 @@ export class PixiApp {
   private direction: DirName = "south"
   private rafId = 0
   private animEngine = new AnimationEngine()
+  private speedMultiplier = 1
 
   private blinkSprites = new Map<DirName, Sprite>()
   private blinkTimer = 3000
@@ -117,8 +126,11 @@ export class PixiApp {
     this.direction = dir
   }
 
-  setBehavior(b: string): void {
+  setBehavior(b: string, emotions?: EmotionState): void {
     this.behavior = b
+    if (emotions) {
+      this.speedMultiplier = calcSpeedMultiplier(emotions)
+    }
   }
 
   startAnimation(): void {
@@ -129,7 +141,7 @@ export class PixiApp {
       prevTime = now
 
       if (this._sprite) {
-        const animSprite = this.animEngine.tick(this.behavior, this.direction, dt)
+        const animSprite = this.animEngine.tick(this.behavior, this.direction, dt, this.speedMultiplier)
         if (animSprite) {
           this._sprite.visible = false
         } else {
