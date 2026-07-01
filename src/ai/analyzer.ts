@@ -4,6 +4,7 @@ import type { OpenRouterProvider } from "./openrouter"
 interface AnalysisResult {
   adjustments: Partial<EmotionState>
   commentary: string | null
+  rawResponse?: string
 }
 
 export async function analyzeContext(
@@ -55,11 +56,12 @@ Rules:
     ])
 
     const parsed = JSON.parse(response)
-    return {
-      adjustments: parsed.emotion_adjustments ?? {},
-      commentary: parsed.commentary ?? null,
+      return {
+        adjustments: parsed.emotion_adjustments ?? {},
+        commentary: parsed.commentary ?? null,
+        rawResponse: response,
+      }
+    } catch {
+      return { adjustments: {}, commentary: null }
     }
-  } catch {
-    return { adjustments: {}, commentary: null }
-  }
 }

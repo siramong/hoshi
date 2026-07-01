@@ -108,8 +108,17 @@ export interface AnimationFrame {
 
 // ─── Global state ─────────────────────────────────────────────
 
+export interface AiAnalysis {
+  timestamp: number
+  windowTitle: string
+  rawResponse: string
+  adjustments: Partial<EmotionState>
+  commentary: string | null
+}
+
 export interface Settings {
   showHUD: boolean
+  debugMode: boolean
   apiKey?: string
   aiModel?: string
   aiEnabled: boolean
@@ -125,10 +134,13 @@ export interface HoshiState {
   forcedAnimTimer: number
   message: string | null
   settings: Settings
+  lastAiAnalysis: AiAnalysis | null
+  aiAnalysisCountdown: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   showHUD: true,
+  debugMode: false,
   apiKey: "",
   aiModel: "meta-llama/llama-3.3-70b-instruct:free",
   aiEnabled: false,

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { HoshiCanvas } from "./components/HoshiCanvas"
 import { HUD } from "./components/HUD"
+import { DebugPanel } from "./components/DebugPanel"
 import { DialogueBubble } from "./components/DialogueBubble"
 import { PixiApp } from "./renderer"
 import { EmotionEngine, BehaviorEngine, IdentityEngine, MemoryEngine } from "./engines"
@@ -149,7 +150,8 @@ export function App() {
       emotion.tick(allEvents, context)
 
       tickCounter++
-      if (tickCounter % 30 === 0 && useHoshiStore.getState().settings.aiEnabled && ai.isAvailable()) {
+      const aiSetting = useHoshiStore.getState().settings
+      if (tickCounter % 30 === 0 && aiSetting.aiEnabled && ai.isAvailable()) {
         invoke<string>("get_active_window").then((windowTitle) => {
           const currentEmotions = emotion.getState()
           const currentContext = observer.getContext()
@@ -160,11 +162,19 @@ export function App() {
             if (result.commentary) {
               setMessage(result.commentary)
             }
+            useHoshiStore.getState().setLastAiAnalysis({
+              timestamp: Date.now(),
+              windowTitle,
+              rawResponse: result.rawResponse ?? JSON.stringify(result),
+              adjustments: result.adjustments,
+              commentary: result.commentary,
+            })
           })
         }).catch(() => {
           // Window tracking not available
         })
       }
+      useHoshiStore.getState().setAiAnalysisCountdown(tickCounter % 30 === 0 ? 30 : 30 - (tickCounter % 30))
 
       let emotionsState = emotion.getState()
       const state = behavior.evaluate(emotionsState, context, identity.getTraits())
@@ -259,10 +269,14 @@ export function App() {
       <HoshiCanvas onReady={handlePixiReady} onClick={handleClick} onDoubleClick={handleDoubleClick} />
       <DialogueBubble />
       <HUD />
+      {settings.debugMode && <DebugPanel />}
       {showMenu && (
         <div style={menuStyles.container}>
           <button style={menuStyles.btn} onClick={() => { setSettings({ showHUD: !settings.showHUD }); syncSettings({ showHUD: !settings.showHUD }) }}>
             {settings.showHUD ? "Hide" : "Show"} HUD
+          </button>
+          <button style={{ ...menuStyles.btn, color: settings.debugMode ? "#50fa7b" : "#fff" }} onClick={() => { setSettings({ debugMode: !settings.debugMode }); syncSettings({ debugMode: !settings.debugMode }) }}>
+            Debug: {settings.debugMode ? "ON" : "OFF"}
           </button>
           <button style={menuStyles.btn} onClick={() => { const e = document.getElementById("ai-key-input"); if (e) { const v = (e as HTMLInputElement).value; if (v) { setSettings({ apiKey: v, aiEnabled: true }); syncSettings({ apiKey: v, aiEnabled: true }); enginesRef.current.ai.configure(v) } } }}>
             Set API Key

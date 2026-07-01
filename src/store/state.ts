@@ -2,6 +2,7 @@ import { create } from "zustand"
 import {
   BehaviorState,
   DEFAULT_SETTINGS,
+  type AiAnalysis,
   type EmotionState,
   type HoshiState,
   type PersonalityTraits,
@@ -45,6 +46,8 @@ interface HoshiStore extends HoshiState {
   setContext: (context: SystemContext) => void
   setMessage: (message: string | null) => void
   setSettings: (settings: Partial<Settings>) => void
+  setLastAiAnalysis: (analysis: AiAnalysis | null) => void
+  setAiAnalysisCountdown: (countdown: number) => void
 }
 
 export const useHoshiStore = create<HoshiStore>((set) => ({
@@ -57,6 +60,8 @@ export const useHoshiStore = create<HoshiStore>((set) => ({
   forcedAnimTimer: 0,
   message: null,
   settings: { ...DEFAULT_SETTINGS },
+  lastAiAnalysis: null,
+  aiAnalysisCountdown: 0,
 
   setEmotions: (emotions) => set({ emotions }),
   setBehavior: (behavior) => set({ behavior }),
@@ -65,4 +70,6 @@ export const useHoshiStore = create<HoshiStore>((set) => ({
   setContext: (context) => set({ context }),
   setMessage: (message) => set({ message }),
   setSettings: (partial) => set((s) => ({ settings: { ...s.settings, ...partial } })),
+  setLastAiAnalysis: (lastAiAnalysis) => set({ lastAiAnalysis }),
+  setAiAnalysisCountdown: (aiAnalysisCountdown) => set({ aiAnalysisCountdown }),
 }))
