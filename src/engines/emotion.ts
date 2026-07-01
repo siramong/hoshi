@@ -1,4 +1,6 @@
-import { type EmotionKey, type EmotionState, type SystemEvent, EMOTION_KEYS } from "../types"
+import { type EmotionKey, type EmotionState, type SystemEvent, type SystemContext, EMOTION_KEYS } from "../types"
+
+const cap = (v: number) => Math.max(0, Math.min(100, v))
 
 /**
  * EmotionEngine — tracks internal emotional state.
@@ -48,7 +50,7 @@ export class EmotionEngine {
     }
   }
 
-  tick(_events: SystemEvent[]): EmotionState {
+  tick(events: SystemEvent[], context: SystemContext): EmotionState {
     for (const key of EMOTION_KEYS) {
       const k = key as EmotionKey
       const diff = this.baselines[k] - this.state[k]
@@ -56,6 +58,44 @@ export class EmotionEngine {
         this.state[k] += Math.sign(diff) * this.decayRates[k]
       }
     }
+
+    for (const ev of events) {
+      switch (ev.type) {
+        case "IDLE_START":
+          this.state.boredom = cap(this.state.boredom + 10)
+          this.state.loneliness = cap(this.state.loneliness + 5)
+          break
+        case "IDLE_END":
+          this.state.boredom = cap(this.state.boredom - 10)
+          this.state.loneliness = cap(this.state.loneliness - 5)
+          break
+        case "USER_INTERACTION":
+          this.state.curiosity = cap(this.state.curiosity + 2)
+          this.state.energy = cap(this.state.energy + 1)
+          this.state.loneliness = cap(this.state.loneliness - 1.5)
+          break
+        case "HIGH_ACTIVITY":
+          this.state.curiosity = cap(this.state.curiosity + 3)
+          break
+        case "LOW_ACTIVITY":
+          this.state.boredom = cap(this.state.boredom + 2)
+          break
+      }
+    }
+
+    if (context.isIdle && context.idleDuration > 120_000) {
+      const rate = context.idleDuration > 300_000 ? 2 : 1
+      this.state.boredom = cap(this.state.boredom + rate)
+      this.state.loneliness = cap(this.state.loneliness + rate * 0.5)
+    }
+
+    const tod = context.timeOfDay
+    if (tod === "early_morning" || tod === "night") {
+      this.state.energy = cap(this.state.energy - 1)
+    } else if (tod === "morning") {
+      this.state.happiness = cap(this.state.happiness + 0.3)
+    }
+
     return this.getState()
   }
 

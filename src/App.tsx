@@ -140,28 +140,7 @@ export function App() {
       const userEvents = userEventsRef.current.splice(0)
       const allEvents = [...events, ...userEvents]
 
-      emotion.tick(allEvents)
-
-      for (const ev of allEvents) {
-        if (ev.type === "IDLE_START") {
-          emotion.setState({ boredom: cap(emotion.getState().boredom + 10), loneliness: cap(emotion.getState().loneliness + 5) })
-        } else if (ev.type === "IDLE_END") {
-          emotion.setState({ boredom: cap(emotion.getState().boredom - 10), loneliness: cap(emotion.getState().loneliness - 5) })
-        } else if (ev.type === "USER_INTERACTION") {
-          emotion.setState({ curiosity: cap(emotion.getState().curiosity + 2), energy: cap(emotion.getState().energy + 1), loneliness: cap(emotion.getState().loneliness - 1.5) })
-        }
-      }
-
-      if (context.isIdle && context.idleDuration > 120_000) {
-        const rate = context.idleDuration > 300_000 ? 2 : 1
-        emotion.setState({ boredom: cap(emotion.getState().boredom + rate), loneliness: cap(emotion.getState().loneliness + rate * 0.5) })
-      }
-
-      if (context.timeOfDay === "night") {
-        emotion.setState({ energy: cap(emotion.getState().energy - 1) })
-      } else if (context.timeOfDay === "morning") {
-        emotion.setState({ happiness: cap(emotion.getState().happiness + 0.3) })
-      }
+      emotion.tick(allEvents, context)
 
       let emotionsState = emotion.getState()
       const state = behavior.evaluate(emotionsState, context)
