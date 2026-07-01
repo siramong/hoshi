@@ -5,7 +5,8 @@ import { DialogueBubble } from "./components/DialogueBubble"
 import { PixiApp } from "./renderer"
 import { EmotionEngine, BehaviorEngine, IdentityEngine, MemoryEngine } from "./engines"
 import { DialogueEngine } from "./dialogue"
-import { OpenRouterProvider } from "./ai"
+import { OpenRouterProvider, analyzeContext } from "./ai"
+import { invoke } from "@tauri-apps/api/core"
 import { SystemObserver } from "./observers"
 import { useHoshiStore } from "./store"
 import { getCurrentWindow } from "@tauri-apps/api/window"
@@ -134,8 +135,9 @@ export function App() {
   }, [])
 
   useEffect(() => {
+    let tickCounter = 0
     const interval = setInterval(() => {
-      const { emotion, behavior, identity, memory, observer } = enginesRef.current
+      const { emotion, behavior, identity, memory, observer, ai } = enginesRef.current
 
       const events = observer.tick()
       const context = observer.getContext()
@@ -145,6 +147,24 @@ export function App() {
       const allEvents = [...events, ...userEvents]
 
       emotion.tick(allEvents, context)
+
+      tickCounter++
+      if (tickCounter % 30 === 0 && useHoshiStore.getState().settings.aiEnabled && ai.isAvailable()) {
+        invoke<string>("get_active_window").then((windowTitle) => {
+          const currentEmotions = emotion.getState()
+          const currentContext = observer.getContext()
+          analyzeContext(ai, windowTitle, currentEmotions, currentContext).then((result) => {
+            if (Object.keys(result.adjustments).length > 0) {
+              emotion.setState(result.adjustments)
+            }
+            if (result.commentary) {
+              setMessage(result.commentary)
+            }
+          })
+        }).catch(() => {
+          // Window tracking not available
+        })
+      }
 
       let emotionsState = emotion.getState()
       const state = behavior.evaluate(emotionsState, context, identity.getTraits())
