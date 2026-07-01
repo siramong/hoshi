@@ -92,7 +92,7 @@ export interface SystemContext {
 
 // ─── Animation types ──────────────────────────────────────────
 
-export type AnimationKey = "idle" | "happy" | "sleep" | "surprise" | "observe" | "bounce" | "curious"
+export type AnimationKey = "idle" | "happy" | "sleeping" | "surprise" | "observing" | "bounce" | "curious"
 
 export interface AnimationFrame {
   spriteIndex: number
@@ -107,5 +107,7 @@ export interface HoshiState {
   personality: PersonalityTraits
   context: SystemContext
   animation: AnimationKey
+  forcedAnimation: string | null
+  forcedAnimTimer: number
   message: string | null
 }

@@ -38,17 +38,32 @@ export function App() {
   const setEmotions = useHoshiStore((s) => s.setEmotions)
   const setBehavior = useHoshiStore((s) => s.setBehavior)
   const setAnimation = useHoshiStore((s) => s.setAnimation)
+  const setForcedAnimation = useHoshiStore((s) => s.setForcedAnimation)
   const setContext = useHoshiStore((s) => s.setContext)
   const setMessage = useHoshiStore((s) => s.setMessage)
   const [showMenu, setShowMenu] = useState(false)
   const msgCooldownRef = useRef(0)
+
+  const forceAnim = useCallback((anim: string, durationMs: number) => {
+    setForcedAnimation(anim, durationMs)
+  }, [setForcedAnimation])
 
   const handleClick = useCallback(() => {
     const { emotion, observer } = enginesRef.current
     observer.reportActivity()
     emotion.setState({ happiness: cap(emotion.getState().happiness + 15), affection: cap(emotion.getState().affection + 8) })
     setEmotions(emotion.getState())
-  }, [setEmotions])
+    forceAnim("happy", 2000)
+  }, [setEmotions, forceAnim])
+
+  const handleDoubleClick = useCallback(() => {
+    const { emotion, observer } = enginesRef.current
+    observer.reportActivity()
+    emotion.setState({ happiness: cap(emotion.getState().happiness + 20), affection: cap(emotion.getState().affection + 15) })
+    setEmotions(emotion.getState())
+    forceAnim("happy", 2500)
+    setMessage("OwO")
+  }, [setEmotions, setMessage, forceAnim])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 0) {
@@ -70,6 +85,7 @@ export function App() {
     try {
       await pixi.loadSprite("/sprites/hoshi.png")
       await pixi.loadAnimations()
+      await pixi.loadBlinkSprites("/sprites/animations/blink/hoshi")
     } catch {
       console.warn("Sprite not found yet — will retry")
     }
@@ -140,16 +156,25 @@ export function App() {
       identity.tick(allEvents)
       setBehavior(state)
 
+      let pixi = pixiRef.current
+      let effectiveState = state
+
+      const store = useHoshiStore.getState()
+      if (store.forcedAnimation && store.forcedAnimTimer > 0) {
+        effectiveState = store.forcedAnimation as BehaviorState
+        const remaining = store.forcedAnimTimer - 1000
+        setForcedAnimation(remaining > 0 ? effectiveState : null, Math.max(0, remaining))
+      }
+
       const animKey =
-        state === "sleeping" ? "sleep" :
+        state === "sleeping" ? "sleeping" :
         state === "happy" ? "happy" :
         state === "curious" ? "curious" :
-        state === "observing" ? "observe" :
+        state === "observing" ? "observing" :
         "idle"
       setAnimation(animKey)
 
-      const pixi = pixiRef.current
-      if (pixi) pixi.setBehavior(state)
+      if (pixi) pixi.setBehavior(effectiveState)
 
       if (msgCooldownRef.current > 0) {
         msgCooldownRef.current--
@@ -172,7 +197,7 @@ export function App() {
 
   return (
     <div className="app-root" onMouseDown={handleMouseDown} onContextMenu={handleContextMenu}>
-      <HoshiCanvas onReady={handlePixiReady} onClick={handleClick} />
+      <HoshiCanvas onReady={handlePixiReady} onClick={handleClick} onDoubleClick={handleDoubleClick} />
       <DialogueBubble />
       <HUD />
       {showMenu && (

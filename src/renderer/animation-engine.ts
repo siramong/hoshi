@@ -1,15 +1,19 @@
 import { Sprite } from "pixi.js"
 
+interface AnimGroup {
+  frames: Sprite[]
+  frameDuration: number
+}
+
 export class AnimationEngine {
-  private groups = new Map<string, Sprite[]>()
+  private groups = new Map<string, AnimGroup>()
   private activeKey: string | null = null
   private frameIndex = 0
   private frameTimer = 0
-  private frameDuration = 280
 
-  register(key: string, frames: Sprite[]): void {
+  register(key: string, frames: Sprite[], frameDuration = 280): void {
     frames.forEach((s) => (s.visible = false))
-    this.groups.set(key, frames)
+    this.groups.set(key, { frames, frameDuration })
   }
 
   tick(behavior: string, direction: string, dt: number): Sprite | null {
@@ -17,19 +21,22 @@ export class AnimationEngine {
 
     if (key !== this.activeKey) {
       if (this.activeKey) {
-        this.groups.get(this.activeKey)?.forEach((s) => (s.visible = false))
+        const prev = this.groups.get(this.activeKey)
+        prev?.frames.forEach((s) => (s.visible = false))
       }
       this.activeKey = key
       this.frameIndex = 0
       this.frameTimer = 0
     }
 
-    const frames = this.groups.get(key)
-    if (!frames || frames.length === 0) return null
+    const group = this.groups.get(key)
+    if (!group || group.frames.length === 0) return null
+
+    const { frames, frameDuration } = group
 
     this.frameTimer += dt
-    while (this.frameTimer >= this.frameDuration) {
-      this.frameTimer -= this.frameDuration
+    while (this.frameTimer >= frameDuration) {
+      this.frameTimer -= frameDuration
       this.frameIndex = (this.frameIndex + 1) % frames.length
     }
 
@@ -38,7 +45,7 @@ export class AnimationEngine {
   }
 
   hideAll(): void {
-    for (const frames of this.groups.values()) {
+    for (const { frames } of this.groups.values()) {
       frames.forEach((s) => (s.visible = false))
     }
     this.activeKey = null

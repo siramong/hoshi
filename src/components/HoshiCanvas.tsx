@@ -4,9 +4,10 @@ import { PixiApp } from "../renderer"
 interface HoshiCanvasProps {
   onReady?: (app: PixiApp) => void
   onClick?: () => void
+  onDoubleClick?: () => void
 }
 
-export function HoshiCanvas({ onReady, onClick }: HoshiCanvasProps) {
+export function HoshiCanvas({ onReady, onClick, onDoubleClick }: HoshiCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const pixiRef = useRef<PixiApp | null>(null)
 
@@ -30,6 +31,7 @@ export function HoshiCanvas({ onReady, onClick }: HoshiCanvasProps) {
     <canvas
       ref={canvasRef}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
       style={{ display: "block", cursor: "pointer" }}
     />
   )

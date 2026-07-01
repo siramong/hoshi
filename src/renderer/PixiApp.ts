@@ -8,6 +8,9 @@ const DIR_NAMES: DirName[] = ["south", "east", "north", "west"]
 const ANIM_MAP: Record<string, string> = {
   idle: "breathing-idle",
   observing: "breathing-idle",
+  happy: "happy",
+  sleeping: "sleepy",
+  curious: "curious",
 }
 
 export class PixiApp {
@@ -17,6 +20,11 @@ export class PixiApp {
   private direction: DirName = "south"
   private rafId = 0
   private animEngine = new AnimationEngine()
+
+  private blinkSprites = new Map<DirName, Sprite>()
+  private blinkTimer = 3000
+  private blinkVisible = false
+  private blinkElapsed = 0
 
   constructor() {
     this.app = new Application()
@@ -44,6 +52,27 @@ export class PixiApp {
     this._sprite.scale.set(1.8)
     this.app.stage.addChild(this._sprite)
     return this._sprite
+  }
+
+  async loadBlinkSprites(basePath: string): Promise<void> {
+    for (const dir of DIR_NAMES) {
+      const path = `${basePath}_${dir}.png`
+      try {
+        const texture = await Assets.load(path)
+        const sprite = new Sprite(texture)
+        sprite.anchor.set(0.5)
+        sprite.x = 75
+        sprite.y = 75
+        sprite.scale.set(1.8)
+        sprite.visible = false
+        this.app.stage.addChild(sprite)
+        this.blinkSprites.set(dir, sprite)
+      } catch {
+        // blink sprite not available for this direction
+      }
+    }
+    // Stagger first blink randomly
+    this.blinkTimer = 2500 + Math.random() * 1500
   }
 
   async loadAnimations(): Promise<void> {
@@ -85,20 +114,49 @@ export class PixiApp {
   }
 
   startAnimation(): void {
-    const loop = () => {
+    let prevTime = performance.now()
+
+    const loop = (now: number) => {
+      const dt = now - prevTime
+      prevTime = now
+
       if (this._sprite) {
-        const animSprite = this.animEngine.tick(this.behavior, this.direction, 16.67)
+        const animSprite = this.animEngine.tick(this.behavior, this.direction, dt)
         if (animSprite) {
           this._sprite.visible = false
         } else {
           this._sprite.visible = true
-          this._sprite.rotation = 0
-          this._sprite.scale.set(1.8)
         }
+
+        this.tickBlink(dt)
       }
+
       this.rafId = requestAnimationFrame(loop)
     }
     this.rafId = requestAnimationFrame(loop)
+  }
+
+  private tickBlink(dt: number): void {
+    const blinkSprite = this.blinkSprites.get(this.direction)
+    if (!blinkSprite) return
+
+    this.blinkElapsed += dt
+
+    if (this.blinkVisible) {
+      // Blink duration: ~100ms
+      if (this.blinkElapsed >= 100) {
+        blinkSprite.visible = false
+        this.blinkVisible = false
+        this.blinkTimer = 2500 + Math.random() * 1500
+        this.blinkElapsed = 0
+      }
+    } else {
+      if (this.blinkElapsed >= this.blinkTimer) {
+        blinkSprite.visible = true
+        this.blinkVisible = true
+        this.blinkElapsed = 0
+      }
+    }
   }
 
   stopAnimation(): void {
