@@ -4,26 +4,16 @@ import { HUD } from "./components/HUD"
 import { DialogueBubble } from "./components/DialogueBubble"
 import { PixiApp } from "./renderer"
 import { EmotionEngine, BehaviorEngine, IdentityEngine, MemoryEngine } from "./engines"
+import { DialogueEngine } from "./dialogue"
 import { SystemObserver } from "./observers"
 import { useHoshiStore } from "./store"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import "./App.css"
 
-import type { BehaviorState, SystemContext, EmotionState } from "./types"
+import type { BehaviorState } from "./types"
 import { loadSave, writeSave, initDB } from "./persist"
 
 const cap = (v: number) => Math.max(0, Math.min(100, v))
-
-function pickMessage(state: BehaviorState, emotions: EmotionState, context: SystemContext): string | null {
-  if (state === "sleeping") return ["💤 zzz...", "zZZ...", "*dormido*"][Math.floor(Math.random() * 3)]
-  if (state === "happy") return ["^_^", "♪", "Hehe~"][Math.floor(Math.random() * 3)]
-  if (state === "curious") return ["¿?", "Hmm...", "Qué es eso?"][Math.floor(Math.random() * 3)]
-  if (emotions.loneliness > 70) return ["...", "*sigh*"][Math.floor(Math.random() * 2)]
-  if (emotions.boredom > 60) return ["*bostezo*", "..."][Math.floor(Math.random() * 2)]
-  if (context.timeOfDay === "morning" && emotions.happiness > 50) return ["Buenos días~", "Morning!"][Math.floor(Math.random() * 2)]
-  if (context.timeOfDay === "night") return ["*sueño*", "Que tarde..."][Math.floor(Math.random() * 2)]
-  return null
-}
 
 export function App() {
   const pixiRef = useRef<PixiApp | null>(null)
@@ -33,6 +23,7 @@ export function App() {
     identity: new IdentityEngine(),
     memory: new MemoryEngine(),
     observer: new SystemObserver(),
+    dialogue: new DialogueEngine(),
   })
   const userEventsRef = useRef<Array<{ type: "USER_INTERACTION"; kind: "mouse" | "keyboard" }>>([])
 
@@ -177,8 +168,8 @@ export function App() {
 
       if (msgCooldownRef.current > 0) {
         msgCooldownRef.current--
-      } else if (Math.random() < 0.35) {
-        const msg = pickMessage(state, emotionsState, context)
+      } else {
+        const msg = enginesRef.current.dialogue.getMessage(state, emotionsState, context, identity.getTraits())
         if (msg) {
           setMessage(msg)
           msgCooldownRef.current = 15 + Math.floor(Math.random() * 15)
