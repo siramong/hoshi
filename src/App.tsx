@@ -10,7 +10,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window"
 import "./App.css"
 
 import type { BehaviorState, SystemContext, EmotionState } from "./types"
-import { loadSave, writeSave } from "./persist"
+import { loadSave, writeSave, initDB } from "./persist"
 
 const cap = (v: number) => Math.max(0, Math.min(100, v))
 
@@ -96,14 +96,15 @@ export function App() {
   }, [])
 
   useEffect(() => {
+    initDB().then(() => enginesRef.current.memory.loadFromDB()).catch(() => {
+      // SQLite not available — memory works from cache only
+    })
+
     const saved = loadSave()
     if (saved) {
-      const { emotion, identity, memory } = enginesRef.current
+      const { emotion, identity } = enginesRef.current
       emotion.setState(saved.emotions)
       identity.loadTraits(saved.personality)
-      for (const m of saved.memory) {
-        memory.store(m.type, m.content, m.importance, m.tags ?? [])
-      }
     }
     try {
       const raw = localStorage.getItem("hoshi_settings")
@@ -186,7 +187,7 @@ export function App() {
 
       if (events.some((e) => e.type !== "TICK" && e.type !== "USER_INTERACTION")) {
         const important = allEvents.find((e) => e.type !== "TICK" && e.type !== "USER_INTERACTION")
-        if (important) memory.store("event", JSON.stringify(important), 50)
+        if (important) memory.store("event", JSON.stringify(important), 50).catch(() => {})
       }
     }, 1000)
 
@@ -194,24 +195,31 @@ export function App() {
   }, [setEmotions, setBehavior, setAnimation, setContext])
 
   useEffect(() => {
+    let tickCount = 0
     const saveInterval = setInterval(() => {
       const { emotion, identity, memory } = enginesRef.current
+
+      tickCount++
+      if (tickCount % 20 === 0) {
+        memory.consolidate().catch(() => {})
+      }
+
       writeSave({
         emotions: emotion.getState(),
         personality: identity.getTraits(),
-        memory: memory.getAll().slice(-200),
+        memory: [],
         sessionCount: 0,
       })
     }, 30000)
 
     const onUnload = () => {
-      const { emotion, identity, memory } = enginesRef.current
+      const { emotion, identity } = enginesRef.current
       const settings = useHoshiStore.getState().settings
       localStorage.setItem("hoshi_settings", JSON.stringify(settings))
       writeSave({
         emotions: emotion.getState(),
         personality: identity.getTraits(),
-        memory: memory.getAll().slice(-200),
+        memory: [],
         sessionCount: 0,
       })
     }

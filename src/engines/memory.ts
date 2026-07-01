@@ -1,21 +1,36 @@
 import { type Memory, type MemoryType } from "../types"
+import {
+  storeMemory,
+  getRecentMemories,
+  getMemoriesByType,
+  getImportantMemories,
+  searchMemories,
+  getAllMemories,
+  clearMemories,
+  deleteOldMemories,
+} from "../persist"
 
 let _nextId = 0
 function generateId(): string {
   return `mem_${Date.now()}_${_nextId++}`
 }
 
-/**
- * MemoryEngine — stores structured experiences.
- *
- * Manages four memory types: event, emotion, dialogue, milestone.
- * Supports importance weighting and context-based retrieval.
- */
 export class MemoryEngine {
-  private memories: Memory[] = []
-  private readonly maxMemories = 500
+  private cache: Memory[] = []
+  private cacheSize = 50
+  private loaded = false
 
-  store(type: MemoryType, content: string, importance: number, tags: string[] = []): Memory {
+  async loadFromDB(): Promise<void> {
+    if (this.loaded) return
+    try {
+      this.cache = await getRecentMemories(this.cacheSize)
+    } catch {
+      this.cache = []
+    }
+    this.loaded = true
+  }
+
+  async store(type: MemoryType, content: string, importance: number, tags: string[] = []): Promise<Memory> {
     const memory: Memory = {
       id: generateId(),
       timestamp: Date.now(),
@@ -24,39 +39,76 @@ export class MemoryEngine {
       importance,
       tags,
     }
-    this.memories.unshift(memory)
-    if (this.memories.length > this.maxMemories) {
-      this.memories.pop()
+    this.cache.unshift(memory)
+    if (this.cache.length > this.cacheSize) {
+      this.cache.pop()
+    }
+    try {
+      await storeMemory(memory.id, memory.timestamp, memory.type, memory.content, memory.importance, memory.tags)
+    } catch {
+      // DB not available — keep in cache, save later
     }
     return memory
   }
 
   getRecent(count = 20): Memory[] {
-    return this.memories.slice(0, count)
+    return this.cache.slice(0, count)
   }
 
-  getByType(type: MemoryType): Memory[] {
-    return this.memories.filter((m) => m.type === type)
+  async getByType(type: MemoryType): Promise<Memory[]> {
+    try {
+      return await getMemoriesByType(type)
+    } catch {
+      return this.cache.filter((m) => m.type === type)
+    }
   }
 
-  getImportant(threshold = 70): Memory[] {
-    return this.memories.filter((m) => m.importance >= threshold)
+  async getImportant(threshold = 70): Promise<Memory[]> {
+    try {
+      return await getImportantMemories(threshold)
+    } catch {
+      return this.cache.filter((m) => m.importance >= threshold)
+    }
   }
 
-  search(query: string): Memory[] {
-    const lower = query.toLowerCase()
-    return this.memories.filter(
-      (m) =>
-        m.content.toLowerCase().includes(lower) ||
-        m.tags.some((t) => t.toLowerCase().includes(lower))
-    )
+  async search(query: string): Promise<Memory[]> {
+    try {
+      return await searchMemories(query)
+    } catch {
+      const lower = query.toLowerCase()
+      return this.cache.filter(
+        (m) =>
+          m.content.toLowerCase().includes(lower) ||
+          m.tags.some((t) => t.toLowerCase().includes(lower)),
+      )
+    }
   }
 
-  getAll(): Memory[] {
-    return [...this.memories]
+  async getAll(): Promise<Memory[]> {
+    try {
+      return await getAllMemories()
+    } catch {
+      return [...this.cache]
+    }
   }
 
-  clear(): void {
-    this.memories = []
+  async clear(): Promise<void> {
+    this.cache = []
+    try {
+      await clearMemories()
+    } catch {
+      // noop
+    }
+  }
+
+  async consolidate(): Promise<void> {
+    try {
+      const deleted = await deleteOldMemories(7 * 24 * 60 * 60 * 1000)
+      if (deleted > 0) {
+        this.cache = await getRecentMemories(this.cacheSize)
+      }
+    } catch {
+      // noop
+    }
   }
 }
