@@ -1,14 +1,5 @@
 import { type PersonalityTraits, type TraitKey, type SystemEvent } from "../types"
 
-const TRAIT_KEYS: TraitKey[] = [
-  "curiosity",
-  "introversion",
-  "humor",
-  "empathy",
-  "discipline",
-  "creativity",
-]
-
 const DEFAULT_TRAITS: PersonalityTraits = {
   curiosity: 50,
   introversion: 40,

@@ -5,8 +5,6 @@ let animTime = 0
 export function tickAnimations(sprite: Sprite, behavior: string, dt: number): void {
   animTime += dt
 
-  const baseY = sprite.y
-
   switch (behavior) {
     case "sleeping":
       breathe(sprite, animTime, 0.5)

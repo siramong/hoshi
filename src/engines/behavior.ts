@@ -18,30 +18,38 @@ export class BehaviorEngine {
   constructor() {
     this.rules = [
       {
-        name: "sleepy",
-        priority: 3,
+        name: "exhausted",
+        priority: 4,
         condition: (e: EmotionState, ctx: SystemContext) =>
-          e.energy < 20 || (ctx.timeOfDay === "night" && e.energy < 40),
+          e.energy < 15 || (ctx.timeOfDay === "night" && e.energy < 30),
         targetState: BehaviorState.Sleeping,
       },
       {
-        name: "happy",
-        priority: 2,
-        condition: (e: EmotionState) => e.happiness > 75,
-        targetState: BehaviorState.Happy,
+        name: "bored_tired",
+        priority: 3,
+        condition: (e: EmotionState) =>
+          e.boredom > 60 && e.energy < 45,
+        targetState: BehaviorState.Sleeping,
       },
       {
         name: "lonely",
         priority: 2,
         condition: (e: EmotionState, ctx: SystemContext) =>
-          e.loneliness > 65 && !ctx.isIdle,
+          e.loneliness > 55 && !ctx.isIdle,
         targetState: BehaviorState.Observing,
+      },
+      {
+        name: "happy",
+        priority: 2,
+        condition: (e: EmotionState) =>
+          e.happiness > 70 || (e.happiness > 55 && e.affection > 50),
+        targetState: BehaviorState.Happy,
       },
       {
         name: "curious",
         priority: 1,
         condition: (e: EmotionState, ctx: SystemContext) =>
-          e.curiosity > 60 && !ctx.isIdle,
+          e.curiosity > 55 && e.energy > 50 && !ctx.isIdle,
         targetState: BehaviorState.Curious,
       },
     ]

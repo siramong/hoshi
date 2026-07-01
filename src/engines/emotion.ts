@@ -48,7 +48,7 @@ export class EmotionEngine {
     }
   }
 
-  tick(events: SystemEvent[]): EmotionState {
+  tick(_events: SystemEvent[]): EmotionState {
     for (const key of EMOTION_KEYS) {
       const k = key as EmotionKey
       const diff = this.baselines[k] - this.state[k]
