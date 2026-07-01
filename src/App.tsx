@@ -42,6 +42,8 @@ export function App() {
   const setForcedAnimation = useHoshiStore((s) => s.setForcedAnimation)
   const setContext = useHoshiStore((s) => s.setContext)
   const setMessage = useHoshiStore((s) => s.setMessage)
+  const setSettings = useHoshiStore((s) => s.setSettings)
+  const showHUD = useHoshiStore((s) => s.settings.showHUD)
   const [showMenu, setShowMenu] = useState(false)
   const msgCooldownRef = useRef(0)
 
@@ -103,7 +105,11 @@ export function App() {
         memory.store(m.type, m.content, m.importance, m.tags ?? [])
       }
     }
-  }, [])
+    try {
+      const raw = localStorage.getItem("hoshi_settings")
+      if (raw) setSettings(JSON.parse(raw))
+    } catch { /* ignore */ }
+  }, [setSettings])
 
   useEffect(() => {
     let lastInput = 0
@@ -221,6 +227,8 @@ export function App() {
 
     const onUnload = () => {
       const { emotion, identity, memory } = enginesRef.current
+      const settings = useHoshiStore.getState().settings
+      localStorage.setItem("hoshi_settings", JSON.stringify(settings))
       writeSave({
         emotions: emotion.getState(),
         personality: identity.getTraits(),
@@ -243,6 +251,9 @@ export function App() {
       <HUD />
       {showMenu && (
         <div style={menuStyles.container}>
+          <button style={menuStyles.btn} onClick={() => { setSettings({ showHUD: !showHUD }); localStorage.setItem("hoshi_settings", JSON.stringify({ showHUD: !showHUD })) }}>
+            {showHUD ? "Hide" : "Show"} HUD
+          </button>
           <button style={menuStyles.btn} onClick={handleClose}>✕ Close</button>
           <button style={menuStyles.btn} onClick={() => setShowMenu(false)}>Hide menu</button>
         </div>

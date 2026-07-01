@@ -1,9 +1,11 @@
 import { create } from "zustand"
 import {
   BehaviorState,
+  DEFAULT_SETTINGS,
   type EmotionState,
   type HoshiState,
   type PersonalityTraits,
+  type Settings,
   type SystemContext,
 } from "../types"
 
@@ -41,6 +43,7 @@ interface HoshiStore extends HoshiState {
   setForcedAnimation: (anim: string | null, timer?: number) => void
   setContext: (context: SystemContext) => void
   setMessage: (message: string | null) => void
+  setSettings: (settings: Partial<Settings>) => void
 }
 
 export const useHoshiStore = create<HoshiStore>((set) => ({
@@ -52,6 +55,7 @@ export const useHoshiStore = create<HoshiStore>((set) => ({
   forcedAnimation: null,
   forcedAnimTimer: 0,
   message: null,
+  settings: { ...DEFAULT_SETTINGS },
 
   setEmotions: (emotions) => set({ emotions }),
   setBehavior: (behavior) => set({ behavior }),
@@ -59,4 +63,5 @@ export const useHoshiStore = create<HoshiStore>((set) => ({
   setForcedAnimation: (forcedAnimation, timer = 0) => set({ forcedAnimation, forcedAnimTimer: timer }),
   setContext: (context) => set({ context }),
   setMessage: (message) => set({ message }),
+  setSettings: (partial) => set((s) => ({ settings: { ...s.settings, ...partial } })),
 }))

@@ -101,6 +101,10 @@ export interface AnimationFrame {
 
 // ─── Global state ─────────────────────────────────────────────
 
+export interface Settings {
+  showHUD: boolean
+}
+
 export interface HoshiState {
   emotions: EmotionState
   behavior: BehaviorState
@@ -110,4 +114,9 @@ export interface HoshiState {
   forcedAnimation: string | null
   forcedAnimTimer: number
   message: string | null
+  settings: Settings
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  showHUD: true,
 }

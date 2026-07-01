@@ -11,6 +11,9 @@ export function HUD() {
   const emotions = useHoshiStore((s) => s.emotions)
   const behavior = useHoshiStore((s) => s.behavior)
   const animation = useHoshiStore((s) => s.animation)
+  const showHUD = useHoshiStore((s) => s.settings.showHUD)
+
+  if (!showHUD) return null
 
   return (
     <div style={styles.panel}>
