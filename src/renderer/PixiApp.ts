@@ -76,10 +76,18 @@ export class PixiApp {
   }
 
   async loadAnimations(): Promise<void> {
+    const FRAME_DURATIONS: Record<string, number> = {
+      "breathing-idle": 600,
+      happy: 400,
+      sleepy: 500,
+      curious: 450,
+    }
+
     const animBehaviors = Object.keys(ANIM_MAP)
 
     for (const behavior of animBehaviors) {
       const folder = ANIM_MAP[behavior]
+      const frameDuration = FRAME_DURATIONS[folder] ?? 600
       for (const dir of DIR_NAMES) {
         const frames: Sprite[] = []
         for (let i = 0; ; i++) {
@@ -99,7 +107,7 @@ export class PixiApp {
           }
         }
         if (frames.length > 0) {
-          this.animEngine.register(`${behavior}:${dir}`, frames)
+          this.animEngine.register(`${behavior}:${dir}`, frames, frameDuration)
         }
       }
     }
