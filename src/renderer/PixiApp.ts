@@ -41,7 +41,7 @@ export class PixiApp {
     this._sprite.anchor.set(0.5)
     this._sprite.x = 75
     this._sprite.y = 75
-    this._sprite.scale.set(3)
+    this._sprite.scale.set(1.8)
     this.app.stage.addChild(this._sprite)
     return this._sprite
   }
@@ -111,7 +111,7 @@ export class PixiApp {
           }
         }
 
-        this._sprite.scale.set(3)
+        this._sprite.scale.set(1.8)
         this._sprite.rotation = 0
         this._sprite.y = 75
         applyAnim(this._sprite, this.behavior, now)

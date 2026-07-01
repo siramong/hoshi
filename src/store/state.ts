@@ -39,6 +39,7 @@ interface HoshiStore extends HoshiState {
   setBehavior: (behavior: BehaviorState) => void
   setAnimation: (animation: HoshiState["animation"]) => void
   setContext: (context: SystemContext) => void
+  setMessage: (message: string | null) => void
 }
 
 export const useHoshiStore = create<HoshiStore>((set) => ({
@@ -47,9 +48,11 @@ export const useHoshiStore = create<HoshiStore>((set) => ({
   personality: DEFAULT_TRAITS,
   context: DEFAULT_CONTEXT,
   animation: "idle",
+  message: null,
 
   setEmotions: (emotions) => set({ emotions }),
   setBehavior: (behavior) => set({ behavior }),
   setAnimation: (animation) => set({ animation }),
   setContext: (context) => set({ context }),
+  setMessage: (message) => set({ message }),
 }))

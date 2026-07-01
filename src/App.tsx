@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { HoshiCanvas } from "./components/HoshiCanvas"
 import { HUD } from "./components/HUD"
+import { DialogueBubble } from "./components/DialogueBubble"
 import { PixiApp } from "./renderer"
 import { EmotionEngine, BehaviorEngine, IdentityEngine, MemoryEngine } from "./engines"
 import { SystemObserver } from "./observers"
@@ -8,7 +9,20 @@ import { useHoshiStore } from "./store"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import "./App.css"
 
+import type { BehaviorState, SystemContext, EmotionState } from "./types"
+
 const cap = (v: number) => Math.max(0, Math.min(100, v))
+
+function pickMessage(state: BehaviorState, emotions: EmotionState, context: SystemContext): string | null {
+  if (state === "sleeping") return ["💤 zzz...", "zZZ...", "*dormido*"][Math.floor(Math.random() * 3)]
+  if (state === "happy") return ["^_^", "♪", "Hehe~"][Math.floor(Math.random() * 3)]
+  if (state === "curious") return ["¿?", "Hmm...", "Qué es eso?"][Math.floor(Math.random() * 3)]
+  if (emotions.loneliness > 70) return ["...", "*sigh*"][Math.floor(Math.random() * 2)]
+  if (emotions.boredom > 60) return ["*bostezo*", "..."][Math.floor(Math.random() * 2)]
+  if (context.timeOfDay === "morning" && emotions.happiness > 50) return ["Buenos días~", "Morning!"][Math.floor(Math.random() * 2)]
+  if (context.timeOfDay === "night") return ["*sueño*", "Que tarde..."][Math.floor(Math.random() * 2)]
+  return null
+}
 
 export function App() {
   const pixiRef = useRef<PixiApp | null>(null)
@@ -25,7 +39,9 @@ export function App() {
   const setBehavior = useHoshiStore((s) => s.setBehavior)
   const setAnimation = useHoshiStore((s) => s.setAnimation)
   const setContext = useHoshiStore((s) => s.setContext)
+  const setMessage = useHoshiStore((s) => s.setMessage)
   const [showMenu, setShowMenu] = useState(false)
+  const msgCooldownRef = useRef(0)
 
   const handleClick = useCallback(() => {
     const { emotion, observer } = enginesRef.current
@@ -145,6 +161,16 @@ export function App() {
       const pixi = pixiRef.current
       if (pixi) pixi.setBehavior(state)
 
+      if (msgCooldownRef.current > 0) {
+        msgCooldownRef.current--
+      } else if (Math.random() < 0.35) {
+        const msg = pickMessage(state, emotionsState, context)
+        if (msg) {
+          setMessage(msg)
+          msgCooldownRef.current = 15 + Math.floor(Math.random() * 15)
+        }
+      }
+
       if (events.some((e) => e.type !== "TICK" && e.type !== "USER_INTERACTION")) {
         const important = allEvents.find((e) => e.type !== "TICK" && e.type !== "USER_INTERACTION")
         if (important) memory.store("event", JSON.stringify(important), 50)
@@ -157,6 +183,7 @@ export function App() {
   return (
     <div className="app-root" onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onContextMenu={handleContextMenu}>
       <HoshiCanvas onReady={handlePixiReady} onClick={handleClick} />
+      <DialogueBubble />
       <HUD />
       {showMenu && (
         <div style={menuStyles.container}>

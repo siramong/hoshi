@@ -107,4 +107,5 @@ export interface HoshiState {
   personality: PersonalityTraits
   context: SystemContext
   animation: AnimationKey
+  message: string | null
 }
