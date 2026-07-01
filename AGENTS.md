@@ -81,6 +81,14 @@ npm run tauri build  # production build
 - Must avoid constant LLM usage
 - <50MB idle target
 
+## Workflow Constraints (permanent)
+
+Always follow these two rules in every session:
+
+1. **Micro-commits**: Commit after every logical step (or group of tiny related steps). Each commit message must clearly describe what changed in plain language. No mega-commits with 10 unrelated changes.
+
+2. **Todo updates**: Update the task list (`todowrite`) after every step — mark completed, add new items, reorder as needed. Never batch status updates; they should reflect real-time progress.
+
 ## Philosophy
 
 - Emergence over scripting
