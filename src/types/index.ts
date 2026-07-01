@@ -110,6 +110,9 @@ export interface AnimationFrame {
 
 export interface Settings {
   showHUD: boolean
+  apiKey?: string
+  aiModel?: string
+  aiEnabled: boolean
 }
 
 export interface HoshiState {
@@ -126,4 +129,7 @@ export interface HoshiState {
 
 export const DEFAULT_SETTINGS: Settings = {
   showHUD: true,
+  apiKey: "",
+  aiModel: "mistralai/mistral-7b-instruct",
+  aiEnabled: false,
 }

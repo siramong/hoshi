@@ -5,6 +5,7 @@ import { DialogueBubble } from "./components/DialogueBubble"
 import { PixiApp } from "./renderer"
 import { EmotionEngine, BehaviorEngine, IdentityEngine, MemoryEngine } from "./engines"
 import { DialogueEngine } from "./dialogue"
+import { OpenRouterProvider } from "./ai"
 import { SystemObserver } from "./observers"
 import { useHoshiStore } from "./store"
 import { getCurrentWindow } from "@tauri-apps/api/window"
@@ -24,6 +25,7 @@ export function App() {
     memory: new MemoryEngine(),
     observer: new SystemObserver(),
     dialogue: new DialogueEngine(),
+    ai: new OpenRouterProvider(),
   })
   const userEventsRef = useRef<Array<{ type: "USER_INTERACTION"; kind: "mouse" | "keyboard" }>>([])
 
@@ -34,9 +36,13 @@ export function App() {
   const setContext = useHoshiStore((s) => s.setContext)
   const setMessage = useHoshiStore((s) => s.setMessage)
   const setSettings = useHoshiStore((s) => s.setSettings)
-  const showHUD = useHoshiStore((s) => s.settings.showHUD)
+  const settings = useHoshiStore((s) => s.settings)
   const [showMenu, setShowMenu] = useState(false)
   const msgCooldownRef = useRef(0)
+  const syncSettings = (partial: Partial<typeof settings>) => {
+    const merged = { ...useHoshiStore.getState().settings, ...partial }
+    localStorage.setItem("hoshi_settings", JSON.stringify(merged))
+  }
 
   const forceAnim = useCallback((anim: string, durationMs: number) => {
     setForcedAnimation(anim, durationMs)
@@ -99,7 +105,13 @@ export function App() {
     }
     try {
       const raw = localStorage.getItem("hoshi_settings")
-      if (raw) setSettings(JSON.parse(raw))
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        setSettings(parsed)
+        if (parsed.apiKey) {
+          enginesRef.current.ai.configure(parsed.apiKey, parsed.aiModel)
+        }
+      }
     } catch { /* ignore */ }
   }, [setSettings])
 
@@ -229,8 +241,15 @@ export function App() {
       <HUD />
       {showMenu && (
         <div style={menuStyles.container}>
-          <button style={menuStyles.btn} onClick={() => { setSettings({ showHUD: !showHUD }); localStorage.setItem("hoshi_settings", JSON.stringify({ showHUD: !showHUD })) }}>
-            {showHUD ? "Hide" : "Show"} HUD
+          <button style={menuStyles.btn} onClick={() => { setSettings({ showHUD: !settings.showHUD }); syncSettings({ showHUD: !settings.showHUD }) }}>
+            {settings.showHUD ? "Hide" : "Show"} HUD
+          </button>
+          <button style={menuStyles.btn} onClick={() => { const e = document.getElementById("ai-key-input"); if (e) { const v = (e as HTMLInputElement).value; if (v) { setSettings({ apiKey: v, aiEnabled: true }); syncSettings({ apiKey: v, aiEnabled: true }); enginesRef.current.ai.configure(v) } } }}>
+            Set API Key
+          </button>
+          <input id="ai-key-input" type="password" placeholder={settings.apiKey ? "••• key set" : "OpenRouter key"} style={menuStyles.input} />
+          <button style={menuStyles.btn} onClick={() => { setSettings({ aiEnabled: !settings.aiEnabled }); syncSettings({ aiEnabled: !settings.aiEnabled }) }}>
+            AI: {settings.aiEnabled ? "ON" : "OFF"}
           </button>
           <button style={menuStyles.btn} onClick={handleClose}>✕ Close</button>
           <button style={menuStyles.btn} onClick={() => setShowMenu(false)}>Hide menu</button>
@@ -248,6 +267,7 @@ const menuStyles: Record<string, React.CSSProperties> = {
     display: "flex",
     gap: 1,
     zIndex: 10000,
+    alignItems: "center",
   },
   btn: {
     background: "rgba(0,0,0,0.7)",
@@ -258,5 +278,15 @@ const menuStyles: Record<string, React.CSSProperties> = {
     padding: "2px 6px",
     cursor: "pointer",
     pointerEvents: "auto",
+  },
+  input: {
+    background: "rgba(0,0,0,0.7)",
+    color: "#fff",
+    border: "1px solid #555",
+    fontFamily: "monospace",
+    fontSize: 9,
+    padding: "2px 6px",
+    width: 120,
+    outline: "none",
   },
 }
