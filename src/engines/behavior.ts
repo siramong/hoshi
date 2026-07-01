@@ -2,6 +2,7 @@ import {
   BehaviorState,
   type EmotionState,
   type SystemContext,
+  type PersonalityTraits,
   type BehaviorRule,
 } from "../types"
 
@@ -73,7 +74,7 @@ export class BehaviorEngine {
     return this.currentState
   }
 
-  evaluate(emotions: EmotionState, context: SystemContext): BehaviorState {
+  evaluate(emotions: EmotionState, context: SystemContext, personality?: PersonalityTraits): BehaviorState {
     const now = Date.now()
 
     if (context.isIdle) {
@@ -88,11 +89,13 @@ export class BehaviorEngine {
       return this.currentState
     }
 
+    const effective = personality ? this.applyPersonality(emotions, personality) : emotions
+
     let chosen = BehaviorState.Idle
     let highestPriority = -1
 
     for (const rule of this.rules) {
-      if (rule.condition(emotions, context) && rule.priority > highestPriority) {
+      if (rule.condition(effective, context) && rule.priority > highestPriority) {
         chosen = rule.targetState
         highestPriority = rule.priority
       }
@@ -104,5 +107,18 @@ export class BehaviorEngine {
     }
 
     return this.currentState
+  }
+
+  private applyPersonality(e: EmotionState, p: PersonalityTraits): EmotionState {
+    const cap = (v: number) => Math.max(0, Math.min(100, v))
+    return {
+      curiosity: cap(e.curiosity + (p.curiosity - 50) * 0.2),
+      happiness: cap(e.happiness + (p.humor - 50) * 0.2),
+      boredom: cap(e.boredom * (1 - (p.discipline - 50) * 0.004)),
+      energy: e.energy,
+      loneliness: cap(e.loneliness + (p.introversion - 50) * 0.1),
+      anxiety: e.anxiety,
+      affection: e.affection,
+    }
   }
 }

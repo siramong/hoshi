@@ -144,7 +144,7 @@ export function App() {
       emotion.tick(allEvents, context)
 
       let emotionsState = emotion.getState()
-      const state = behavior.evaluate(emotionsState, context)
+      const state = behavior.evaluate(emotionsState, context, identity.getTraits())
 
       if (state === "sleeping") {
         emotion.setState({ energy: cap(emotion.getState().energy + 2) })
