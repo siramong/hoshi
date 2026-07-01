@@ -130,6 +130,6 @@ export interface HoshiState {
 export const DEFAULT_SETTINGS: Settings = {
   showHUD: true,
   apiKey: "",
-  aiModel: "mistralai/mistral-7b-instruct",
+  aiModel: "meta-llama/llama-3.3-70b-instruct:free",
   aiEnabled: false,
 }

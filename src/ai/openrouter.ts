@@ -10,7 +10,7 @@ interface OpenRouterConfig {
 export class OpenRouterProvider implements AIProvider {
   private config: OpenRouterConfig | null = null
 
-  constructor(apiKey?: string, model = "mistralai/mistral-7b-instruct") {
+  constructor(apiKey?: string, model = "meta-llama/llama-3.3-70b-instruct:free") {
     if (apiKey) {
       this.config = { apiKey, model }
     }
