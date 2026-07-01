@@ -1,22 +1,22 @@
-import { Application, Assets, Sprite, Texture } from "pixi.js"
-import { applyAnim } from "./animations"
+import { Application, Assets, Sprite } from "pixi.js"
+import { AnimationEngine } from "./animation-engine"
 
 type DirName = "south" | "east" | "north" | "west"
 
 const DIR_NAMES: DirName[] = ["south", "east", "north", "west"]
 
+const ANIM_MAP: Record<string, string> = {
+  idle: "breathing-idle",
+  observing: "breathing-idle",
+}
+
 export class PixiApp {
   readonly app: Application
   private _sprite: Sprite | null = null
-  private dirTextures = new Map<DirName, Texture>()
-  private idleFrames: Texture[] = []
-  private currentDir: DirName = "south"
   private behavior = "idle"
-  private prevBehavior = ""
-  private frameIndex = 0
-  private frameTimer = 0
+  private direction: DirName = "south"
   private rafId = 0
-  private lastTime = 0
+  private animEngine = new AnimationEngine()
 
   constructor() {
     this.app = new Application()
@@ -46,40 +46,38 @@ export class PixiApp {
     return this._sprite
   }
 
-  async loadDirections(basePath: string): Promise<void> {
-    for (const dir of DIR_NAMES) {
-      const tex = await Assets.load(`${basePath}_${dir}.png`)
-      this.dirTextures.set(dir, tex)
+  async loadAnimations(): Promise<void> {
+    const animBehaviors = Object.keys(ANIM_MAP)
+
+    for (const behavior of animBehaviors) {
+      const folder = ANIM_MAP[behavior]
+      for (const dir of DIR_NAMES) {
+        const frames: Sprite[] = []
+        for (let i = 0; ; i++) {
+          const url = `/sprites/animations/${folder}/${dir}/${i}.png`
+          try {
+            const texture = await Assets.load(url)
+            const sprite = new Sprite(texture)
+            sprite.anchor.set(0.5)
+            sprite.x = 75
+            sprite.y = 75
+            sprite.scale.set(1.8)
+            sprite.visible = false
+            this.app.stage.addChild(sprite)
+            frames.push(sprite)
+          } catch {
+            break
+          }
+        }
+        if (frames.length > 0) {
+          this.animEngine.register(`${behavior}:${dir}`, frames)
+        }
+      }
     }
   }
 
-  async loadIdleFrames(): Promise<void> {
-    const paths = [
-      "/sprites/animations/breathing-idle/south/0.png",
-      "/sprites/animations/breathing-idle/south/1.png",
-      "/sprites/animations/breathing-idle/south/2.png",
-      "/sprites/animations/breathing-idle/south/3.png",
-    ]
-    for (const p of paths) {
-      const tex = await Assets.load(p)
-      this.idleFrames.push(tex)
-    }
-  }
-
-  setDirection(angleDeg: number): void {
-    let dir: DirName
-    if (angleDeg < -135 || angleDeg > 135) dir = "west"
-    else if (angleDeg < -45) dir = "north"
-    else if (angleDeg < 45) dir = "east"
-    else dir = "south"
-    this.currentDir = dir
-
-    if (!this._sprite) return
-    const isIdleLike = this.behavior === "idle" || this.behavior === "observing"
-    if (!isIdleLike) {
-      const tex = this.dirTextures.get(dir)
-      if (tex) this._sprite.texture = tex
-    }
+  setDirection(dir: DirName): void {
+    this.direction = dir
   }
 
   setBehavior(b: string): void {
@@ -87,34 +85,17 @@ export class PixiApp {
   }
 
   startAnimation(): void {
-    this.lastTime = performance.now()
-    const loop = (now: number) => {
-      const dt = Math.min((now - this.lastTime) / 1000, 0.05)
-      this.lastTime = now
-
+    const loop = () => {
       if (this._sprite) {
-        const isIdleLike = this.behavior === "idle" || this.behavior === "observing"
-        const wasIdleLike = this.prevBehavior === "idle" || this.prevBehavior === "observing"
-
-        if (!isIdleLike && wasIdleLike && this.dirTextures.size > 0) {
-          const tex = this.dirTextures.get(this.currentDir)
-          if (tex) this._sprite.texture = tex
+        const animSprite = this.animEngine.tick(this.behavior, this.direction, 16.67)
+        if (animSprite) {
+          this._sprite.visible = false
+        } else {
+          this._sprite.visible = true
+          this._sprite.rotation = 0
+          this._sprite.scale.set(1.8)
         }
-
-        if (isIdleLike && this.idleFrames.length > 0) {
-          this.frameTimer += dt
-          if (this.frameTimer > 0.25) {
-            this.frameTimer = 0
-            this.frameIndex = (this.frameIndex + 1) % this.idleFrames.length
-            const tex = this.idleFrames[this.frameIndex]
-            if (tex) this._sprite.texture = tex
-          }
-        }
-
-        applyAnim(this._sprite, this.behavior, now, 1.8)
       }
-
-      this.prevBehavior = this.behavior
       this.rafId = requestAnimationFrame(loop)
     }
     this.rafId = requestAnimationFrame(loop)
@@ -131,6 +112,7 @@ export class PixiApp {
 
   destroy(): void {
     this.stopAnimation()
+    this.animEngine.hideAll()
     try {
       this.app.destroy(true)
     } catch {

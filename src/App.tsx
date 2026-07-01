@@ -56,15 +56,6 @@ export function App() {
     }
   }, [])
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const pixi = pixiRef.current
-    if (!pixi) return
-    const dx = e.clientX - 75
-    const dy = e.clientY - 75
-    const angle = Math.atan2(dy, dx) * (180 / Math.PI)
-    pixi.setDirection(angle)
-  }, [])
-
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     setShowMenu((v) => !v)
@@ -78,8 +69,7 @@ export function App() {
     pixiRef.current = pixi
     try {
       await pixi.loadSprite("/sprites/hoshi.png")
-      await pixi.loadDirections("/sprites/hoshi")
-      await pixi.loadIdleFrames()
+      await pixi.loadAnimations()
     } catch {
       console.warn("Sprite not found yet — will retry")
     }
@@ -181,7 +171,7 @@ export function App() {
   }, [setEmotions, setBehavior, setAnimation, setContext])
 
   return (
-    <div className="app-root" onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onContextMenu={handleContextMenu}>
+    <div className="app-root" onMouseDown={handleMouseDown} onContextMenu={handleContextMenu}>
       <HoshiCanvas onReady={handlePixiReady} onClick={handleClick} />
       <DialogueBubble />
       <HUD />
