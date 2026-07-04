@@ -17,12 +17,12 @@ const TEMPLATES: Template[] = [
   },
   {
     category: "happy",
-    condition: (e: EmotionState, _ctx: SystemContext, _p: PersonalityTraits) => e.happiness > 70,
+    condition: (e: EmotionState, _ctx: SystemContext, _p: PersonalityTraits) => e.happiness > 55,
     messages: ["^_^", "♪", "Hehe~", "Qué bien~", ":D"],
   },
   {
     category: "curious",
-    condition: (e: EmotionState, _ctx: SystemContext, _p: PersonalityTraits) => e.curiosity > 60,
+    condition: (e: EmotionState, _ctx: SystemContext, _p: PersonalityTraits) => e.curiosity > 50,
     messages: ["¿?", "Hmm...", "Qué es eso?", "Ooooh", "Interesante..."],
   },
   {
@@ -32,7 +32,7 @@ const TEMPLATES: Template[] = [
   },
   {
     category: "bored",
-    condition: (e: EmotionState, _ctx: SystemContext, _p: PersonalityTraits) => e.boredom > 60 && e.energy > 30,
+    condition: (e: EmotionState, _ctx: SystemContext, _p: PersonalityTraits) => e.boredom > 45 && e.energy > 20,
     messages: ["*bostezo*", "...", "Aburrido..."],
   },
   {
@@ -63,7 +63,7 @@ const TEMPLATES: Template[] = [
   },
   {
     category: "pet",
-    condition: (e: EmotionState, _ctx: SystemContext, _p: PersonalityTraits) => e.affection > 60,
+    condition: (e: EmotionState, _ctx: SystemContext, _p: PersonalityTraits) => e.affection > 45,
     messages: ["Mimimi~", "Quieto ahí", "Otra vez?"],
   },
   {
@@ -80,6 +80,7 @@ export class DialogueEngine {
   private cooldowns = new Map<string, number>()
   private lastMessages: string[] = []
   private readonly maxRecent = 5
+  private tickSinceLastMsg = 0
 
   getMessage(state: BehaviorState, emotions: EmotionState, context: SystemContext, personality: PersonalityTraits): string | null {
     const now = Date.now()
@@ -99,7 +100,17 @@ export class DialogueEngine {
       }
     }
 
-    if (available.length === 0) return null
+    if (available.length === 0) {
+      this.tickSinceLastMsg++
+      if (this.tickSinceLastMsg > 120) {
+        this.tickSinceLastMsg = 0
+        const ambient = ["...", "....", ".....", "......"]
+        return this.pick(ambient)
+      }
+      return null
+    }
+
+    this.tickSinceLastMsg = 0
 
     const weights = available.map(() => Math.random())
     const maxW = Math.max(...weights)

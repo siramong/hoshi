@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { HoshiCanvas } from "./components/HoshiCanvas"
 import { HUD } from "./components/HUD"
-import { DebugPanel } from "./components/DebugPanel"
+import { useDebugLogger, debugLog } from "./components/DebugPanel"
 import { DialogueBubble } from "./components/DialogueBubble"
 import { PixiApp } from "./renderer"
 import { EmotionEngine, BehaviorEngine, IdentityEngine, MemoryEngine } from "./engines"
@@ -40,6 +40,8 @@ export function App() {
   const setSettings = useHoshiStore((s) => s.setSettings)
   const settings = useHoshiStore((s) => s.settings)
   const [showMenu, setShowMenu] = useState(false)
+
+  useDebugLogger(settings.debugMode)
   const msgCooldownRef = useRef(0)
   const syncSettings = (partial: Partial<typeof settings>) => {
     const merged = { ...useHoshiStore.getState().settings, ...partial }
@@ -144,6 +146,10 @@ export function App() {
       const context = observer.getContext()
       setContext(context)
 
+      if (tickCounter % 30 === 0) {
+        debugLog("Tick", { state: behavior.getState(), context, emotions: emotion.getState() })
+      }
+
       const userEvents = userEventsRef.current.splice(0)
       const allEvents = [...events, ...userEvents]
 
@@ -152,10 +158,13 @@ export function App() {
       tickCounter++
       const aiSetting = useHoshiStore.getState().settings
       if (tickCounter % 30 === 0 && aiSetting.aiEnabled && ai.isAvailable()) {
+        debugLog("→ Consultando AI...")
         invoke<string>("get_active_window").then((windowTitle) => {
+          debugLog("Ventana activa", windowTitle)
           const currentEmotions = emotion.getState()
           const currentContext = observer.getContext()
           analyzeContext(ai, windowTitle, currentEmotions, currentContext).then((result) => {
+            debugLog("AI respondió", result)
             if (Object.keys(result.adjustments).length > 0) {
               emotion.setState(result.adjustments)
             }
@@ -170,8 +179,8 @@ export function App() {
               commentary: result.commentary,
             })
           })
-        }).catch(() => {
-          // Window tracking not available
+        }).catch((err) => {
+          debugLog("Window tracking error", err)
         })
       }
       useHoshiStore.getState().setAiAnalysisCountdown(tickCounter % 30 === 0 ? 30 : 30 - (tickCounter % 30))
@@ -213,6 +222,7 @@ export function App() {
       } else {
         const msg = enginesRef.current.dialogue.getMessage(state, emotionsState, context, identity.getTraits())
         if (msg) {
+          debugLog("💬 Diálogo", msg)
           setMessage(msg)
           msgCooldownRef.current = 15 + Math.floor(Math.random() * 15)
         }
@@ -269,9 +279,8 @@ export function App() {
       <HoshiCanvas onReady={handlePixiReady} onClick={handleClick} onDoubleClick={handleDoubleClick} />
       <DialogueBubble />
       <HUD />
-      {settings.debugMode && <DebugPanel />}
       {showMenu && (
-        <div style={menuStyles.container}>
+        <div style={menuStyles.container} onMouseDown={(e) => e.stopPropagation()}>
           <button style={menuStyles.btn} onClick={() => { setSettings({ showHUD: !settings.showHUD }); syncSettings({ showHUD: !settings.showHUD }) }}>
             {settings.showHUD ? "Hide" : "Show"} HUD
           </button>
